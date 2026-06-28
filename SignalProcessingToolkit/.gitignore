@@ -1,0 +1,70 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.env
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.log
+logs/
+*.sqlite
+*.db
+
+# Test coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.pytest_cache/
+.tox/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Build artifacts
+*.so
+*.pyd
+
+# Application data
+data/
+exports/
+projects/
+cache/
+
+# Audio/Video temp files
+*.wav.tmp
+*.mp4.tmp
+
+# Large data files
+*.npy
+*.npz
+*.mat
+
+# Local settings
+local_settings.yaml
+secrets.yaml
