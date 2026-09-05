@@ -2,12 +2,9 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import Generic, TypeVar
-
-T = TypeVar("T")
 
 
-class Observable(Generic[T]):
+class Observable[T]:
     def __init__(self, value: T) -> None:
         self._value = value
         self._observers: list[Callable[[T], None]] = []
