@@ -2,13 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 from src.models.fft_result import FFTResult
 from src.models.project import Project
 from src.models.signal import Signal
-from src.plots.base import BasePlotWidget
 from src.repositories.implementations.file_project_repository import FileProjectRepository
 from src.repositories.implementations.file_signal_repository import FileSignalRepository
+
+if TYPE_CHECKING:
+    from src.plots.base import BasePlotWidget
+    from src.plots.exporters import PlotExporter
 
 
 @dataclass
@@ -23,9 +27,14 @@ class ExportService:
     def __init__(self) -> None:
         self._signal_repo = FileSignalRepository()
         self._project_repo = FileProjectRepository()
-        from src.plots.exporters import PlotExporter
+        self._plot_exporter: PlotExporter | None = None
 
-        self._plot_exporter = PlotExporter()
+    def _get_plot_exporter(self) -> Any:
+        if self._plot_exporter is None:
+            from src.plots.exporters import PlotExporter
+
+            self._plot_exporter = PlotExporter()
+        return self._plot_exporter
 
     def export_signal(
         self, signal: Signal, path: Path, options: ExportOptions | None = None
@@ -46,11 +55,12 @@ class ExportService:
             raise ValueError(f"Unsupported format: {suffix}")
 
     def export_plot(self, plot_widget: BasePlotWidget, path: Path, dpi: int = 150) -> None:
+        plot_exporter = self._get_plot_exporter()
         suffix = path.suffix.lower()
         if suffix == ".png":
-            self._plot_exporter.export_png(plot_widget, path)
+            plot_exporter.export_png(plot_widget, path)
         elif suffix == ".svg":
-            self._plot_exporter.export_svg(plot_widget, path)
+            plot_exporter.export_svg(plot_widget, path)
         elif suffix == ".pdf":
             self._export_pdf(plot_widget, path, dpi)
         else:
@@ -144,10 +154,11 @@ class ExportService:
     def _export_pdf(self, plot_widget: BasePlotWidget, path: Path, dpi: int = 150) -> None:
         try:
             import matplotlib
+
             matplotlib.use("Agg")
 
             png_path = path.with_suffix(".png")
-            self._plot_exporter.export_png(plot_widget, png_path)
+            self._get_plot_exporter().export_png(plot_widget, png_path)
 
             from fpdf import FPDF
 

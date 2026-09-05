@@ -3,14 +3,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import Callable
-from typing import Generic, Optional, TypeVar
 
 from src.models.signal import Signal
 
-T = TypeVar("T")
 
-
-class UndoableCommand(ABC, Generic[T]):
+class UndoableCommand[T](ABC):
     @abstractmethod
     def execute(self) -> T: ...
 
@@ -25,34 +22,34 @@ class UndoableCommand(ABC, Generic[T]):
     def description(self) -> str: ...
 
 
-class SignalCommand(UndoableCommand[Optional[Signal]]):
+class SignalCommand(UndoableCommand[Signal | None]):
     def __init__(
         self,
         description: str,
         execute_fn: Callable,
-        undo_fn: Optional[Callable] = None,
-        redo_fn: Optional[Callable] = None,
+        undo_fn: Callable | None = None,
+        redo_fn: Callable | None = None,
     ) -> None:
         self._description = description
         self._execute_fn = execute_fn
         self._undo_fn = undo_fn
         self._redo_fn = redo_fn
-        self._result: Optional[Signal] = None
-        self._previous: Optional[Signal] = None
+        self._result: Signal | None = None
+        self._previous: Signal | None = None
 
-    def execute(self) -> Optional[Signal]:
+    def execute(self) -> Signal | None:
         result = self._execute_fn()
         if result is not None:
             self._result = result
         return self._result
 
-    def undo(self) -> Optional[Signal]:
+    def undo(self) -> Signal | None:
         if self._undo_fn:
             result = self._undo_fn()
             return result if isinstance(result, Signal) else self._previous
         return self._previous
 
-    def redo(self) -> Optional[Signal]:
+    def redo(self) -> Signal | None:
         if self._redo_fn:
             result = self._redo_fn()
             return result if isinstance(result, Signal) else self.execute()
@@ -69,13 +66,13 @@ class UndoRedoManager:
         self._redo_stack: deque[SignalCommand] = deque(maxlen=max_history)
         self._max_history = max_history
 
-    def execute(self, command: SignalCommand) -> Optional[Signal]:
+    def execute(self, command: SignalCommand) -> Signal | None:
         result = command.execute()
         self._undo_stack.append(command)
         self._redo_stack.clear()
         return result
 
-    def undo(self) -> Optional[Signal]:
+    def undo(self) -> Signal | None:
         if not self._undo_stack:
             return None
         command = self._undo_stack.pop()
@@ -83,7 +80,7 @@ class UndoRedoManager:
         self._redo_stack.append(command)
         return result
 
-    def redo(self) -> Optional[Signal]:
+    def redo(self) -> Signal | None:
         if not self._redo_stack:
             return None
         command = self._redo_stack.pop()
