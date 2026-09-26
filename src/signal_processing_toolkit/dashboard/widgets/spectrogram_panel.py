@@ -8,13 +8,14 @@ class SpectrogramPanel(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel("Spectrogram"))
-        self.image = pg.ImageView(self)
-        self.image.ui.histogram.hide()
-        self.image.ui.roiBtn.hide()
-        self.image.ui.menuBtn.hide()
-        self.image.setAccessibleName("Streaming spectrogram")
+        self.plot = pg.PlotWidget(self)
+        self.plot.setLabel("left", "Frame")
+        self.plot.setLabel("bottom", "Frequency bin")
+        self.plot.setAccessibleName("Streaming spectrogram")
+        self.image = pg.ImageItem()
+        self.plot.addItem(self.image)
         self._rows = np.empty((0, 0))
-        layout.addWidget(self.image)
+        layout.addWidget(self.plot)
 
     def update_spectrum(self, spectrum: list[float]) -> None:
         if not spectrum:
@@ -23,4 +24,4 @@ class SpectrogramPanel(QWidget):
         if self._rows.shape[1:] != (len(current),):
             self._rows = np.empty((0, len(current)))
         self._rows = np.vstack((self._rows, current[None, :]))[-80:]
-        self.image.setImage(self._rows, autoLevels=False, autoRange=False)
+        self.image.setImage(self._rows, autoLevels=False)

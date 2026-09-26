@@ -8,5 +8,6 @@ def test_dashboard_view_assembles_widgets_and_cleans_up(qapp: QApplication) -> N
     assert view.objectName() == "dashboardPage"
     view.controller.start_demo()
     view.controller._tick()
-    assert view.signal_panel.status.text() != "No samples"
+    assert len(view.viewmodel.state.signal_samples) > 0
+    assert len(view.viewmodel.state.spectrum) > 0
     view.controller.cleanup()
