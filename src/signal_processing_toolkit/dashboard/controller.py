@@ -118,6 +118,19 @@ class DashboardController(QObject):
         except (ImportError, RuntimeError, OSError, ValueError) as exc:
             self._on_source_error(str(exc))
 
+    def load_replay(self, path: str) -> None:
+        """Load a RecordedSession and replay it through the normal source path."""
+        try:
+            from signal_processing_toolkit.streaming.sinks import RecordedSession
+
+            session = RecordedSession.load(path)
+            self.attach_source(
+                session.replay_source(paced=False), SourceType.REPLAY, f"Replay: {path}"
+            )
+            self.start_source()
+        except (OSError, ValueError, KeyError, RuntimeError) as exc:
+            self._on_source_error(str(exc))
+
     def refresh_sources(self) -> None:
         """Refresh hook for source pickers; discovery remains lazy and optional."""
         self.viewmodel.add_event(

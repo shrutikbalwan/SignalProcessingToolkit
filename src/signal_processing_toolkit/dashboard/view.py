@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QGridLayout, QStackedWidget, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QFileDialog, QGridLayout, QStackedWidget, QVBoxLayout, QWidget
 
 from signal_processing_toolkit.dashboard.controller import DashboardController
 from signal_processing_toolkit.dashboard.events import DashboardCommand
@@ -91,6 +91,7 @@ class DashboardView(QWidget):
         )
         self.controls.record_requested.connect(self._record)
         self.source_selector.source_requested.connect(self.controller.select_source)
+        self.source_selector.replay_requested.connect(self._open_replay)
         self.source_selector.refresh_requested.connect(self.controller.refresh_sources)
         self.viewmodel.observe(self._render)
 
@@ -99,6 +100,13 @@ class DashboardView(QWidget):
 
     def _record(self) -> None:
         self.controller.dispatch(DashboardCommand.TOGGLE_RECORDING)
+
+    def _open_replay(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Open recorded session", "", "Signal sessions (*.npz)"
+        )
+        if path:
+            self.controller.load_replay(path)
 
     def _render(self, state: object) -> None:
         from signal_processing_toolkit.dashboard.state import DashboardState

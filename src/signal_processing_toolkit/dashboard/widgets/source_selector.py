@@ -6,6 +6,7 @@ from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QWidget
 
 class SourceSelector(QWidget):
     source_requested = pyqtSignal(str)
+    replay_requested = pyqtSignal()
     refresh_requested = pyqtSignal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
@@ -29,6 +30,10 @@ class SourceSelector(QWidget):
         self.refresh_devices.setAccessibleName("Refresh source devices")
         self.refresh_devices.clicked.connect(self.refresh_requested)
         layout.addWidget(self.refresh_devices)
+        self.open_replay = QPushButton("Open replay")
+        self.open_replay.setAccessibleName("Open recorded replay")
+        self.open_replay.clicked.connect(self.replay_requested)
+        layout.addWidget(self.open_replay)
 
     @property
     def selected_source(self) -> str:
