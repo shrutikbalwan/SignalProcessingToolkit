@@ -73,6 +73,57 @@ class DashboardController(QObject):
         )
         self.start()
 
+    def select_source(self, source_name: str) -> None:
+        """Construct and start an optional source selected by the dashboard."""
+        if source_name == "demo":
+            self.start_demo()
+            return
+        try:
+            if source_name == "serial":
+                from signal_processing_toolkit.hardware.serial_source import (
+                    SerialSensorSource,
+                    SerialSourceConfig,
+                    enumerate_serial_ports,
+                )
+
+                ports = enumerate_serial_ports()
+                if not ports:
+                    raise RuntimeError("No serial sensor ports were found")
+                port = ports[0]
+                source: object = SerialSensorSource(SerialSourceConfig(port=port.device))
+                self.attach_source(source, SourceType.SERIAL, port.description or port.device)
+            elif source_name == "audio":
+                from signal_processing_toolkit.audio.streaming import (
+                    SoundDeviceAudioSource,
+                    enumerate_audio_devices,
+                )
+
+                devices = tuple(
+                    device for device in enumerate_audio_devices() if device.supports_input
+                )
+                if not devices:
+                    raise RuntimeError("No audio input devices were found")
+                device = devices[0]
+                source = SoundDeviceAudioSource()
+                source.configure(
+                    {
+                        "device": device.index,
+                        "channels": max(1, min(device.maximum_input_channels, 2)),
+                    }
+                )
+                self.attach_source(source, SourceType.AUDIO, device.name)
+            else:
+                raise RuntimeError("Replay selection requires a recorded session")
+            self.start_source()
+        except (ImportError, RuntimeError, OSError, ValueError) as exc:
+            self._on_source_error(str(exc))
+
+    def refresh_sources(self) -> None:
+        """Refresh hook for source pickers; discovery remains lazy and optional."""
+        self.viewmodel.add_event(
+            DashboardEvent(event_type="source", description="Source list refreshed")
+        )
+
     def attach_source(self, source: object, source_type: SourceType, device_name: str) -> None:
         """Attach an audio, serial or replay StreamSource without importing its backend."""
         self.stop_source()

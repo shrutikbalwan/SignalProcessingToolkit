@@ -47,3 +47,10 @@ def test_external_stream_source_uses_dashboard_state_path(qapp: QApplication) ->
     assert controller.viewmodel.state.signal_samples
     assert controller.viewmodel.state.spectrum
     controller.cleanup()
+
+
+def test_demo_source_selection_is_safe(qapp: QApplication) -> None:
+    controller = DashboardController()
+    controller.select_source("demo")
+    assert controller.viewmodel.state.source.source_type is SourceType.DEMO
+    controller.cleanup()

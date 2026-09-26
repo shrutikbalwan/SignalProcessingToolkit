@@ -15,6 +15,7 @@ from signal_processing_toolkit.dashboard.widgets.measurement_panel import Measur
 from signal_processing_toolkit.dashboard.widgets.quick_actions import QuickActions
 from signal_processing_toolkit.dashboard.widgets.recent_activity import RecentActivity
 from signal_processing_toolkit.dashboard.widgets.signal_panel import SignalPanel
+from signal_processing_toolkit.dashboard.widgets.source_selector import SourceSelector
 from signal_processing_toolkit.dashboard.widgets.spectrogram_panel import SpectrogramPanel
 from signal_processing_toolkit.dashboard.widgets.spectrum_panel import SpectrumPanel
 from signal_processing_toolkit.dashboard.widgets.system_health import SystemHealth
@@ -38,6 +39,7 @@ class DashboardView(QWidget):
         self.state_stack.hide()
         self.header = DashboardHeader(self)
         self.controls = ControlBar(self)
+        self.source_selector = SourceSelector(self)
         self.signal_panel = SignalPanel(self)
         self.spectrum_panel = SpectrumPanel(self)
         self.spectrogram_panel = SpectrogramPanel(self)
@@ -56,6 +58,7 @@ class DashboardView(QWidget):
         outer = QVBoxLayout(self)
         outer.addWidget(self.header)
         outer.addWidget(self.controls)
+        outer.addWidget(self.source_selector)
         content = QWidget(self)
         grid = QGridLayout(content)
         grid.addWidget(self.signal_panel, 0, 0, 1, 2)
@@ -87,6 +90,8 @@ class DashboardView(QWidget):
             lambda: self.controller.dispatch(DashboardCommand.STOP)
         )
         self.controls.record_requested.connect(self._record)
+        self.source_selector.source_requested.connect(self.controller.select_source)
+        self.source_selector.refresh_requested.connect(self.controller.refresh_sources)
         self.viewmodel.observe(self._render)
 
     def _demo(self) -> None:
