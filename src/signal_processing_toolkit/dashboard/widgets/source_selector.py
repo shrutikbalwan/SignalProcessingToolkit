@@ -1,11 +1,21 @@
 """Source-selection controls; device construction stays in the controller."""
 
 from PyQt6.QtCore import pyqtSignal
-from PyQt6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QWidget
+from PyQt6.QtWidgets import (
+    QComboBox,
+    QDoubleSpinBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QSpinBox,
+    QWidget,
+)
 
 
 class SourceSelector(QWidget):
     source_requested = pyqtSignal(str)
+    configuration_requested = pyqtSignal(float, int, str)
     replay_requested = pyqtSignal()
     refresh_requested = pyqtSignal()
 
@@ -20,11 +30,24 @@ class SourceSelector(QWidget):
         self.source.addItem("Replay", "replay")
         self.source.setAccessibleName("Signal source")
         layout.addWidget(self.source)
+        self.rate = QDoubleSpinBox(self)
+        self.rate.setRange(1.0, 192_000.0)
+        self.rate.setValue(1_000.0)
+        self.rate.setSuffix(" Hz")
+        self.rate.setAccessibleName("Source sampling rate")
+        layout.addWidget(self.rate)
+        self.channels = QSpinBox(self)
+        self.channels.setRange(1, 32)
+        self.channels.setValue(1)
+        self.channels.setAccessibleName("Source channels")
+        layout.addWidget(self.channels)
+        self.port = QLineEdit(self)
+        self.port.setPlaceholderText("Serial port")
+        self.port.setAccessibleName("Serial port")
+        layout.addWidget(self.port)
         self.refresh = QPushButton("Connect")
         self.refresh.setAccessibleName("Connect selected source")
-        self.refresh.clicked.connect(
-            lambda: self.source_requested.emit(str(self.source.currentData()))
-        )
+        self.refresh.clicked.connect(self._request_source)
         layout.addWidget(self.refresh)
         self.refresh_devices = QPushButton("Refresh")
         self.refresh_devices.setAccessibleName("Refresh source devices")
@@ -38,3 +61,9 @@ class SourceSelector(QWidget):
     @property
     def selected_source(self) -> str:
         return str(self.source.currentData())
+
+    def _request_source(self) -> None:
+        self.configuration_requested.emit(
+            self.rate.value(), self.channels.value(), self.port.text().strip()
+        )
+        self.source_requested.emit(self.selected_source)

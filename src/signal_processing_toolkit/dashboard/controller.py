@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import cast
 
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
@@ -37,6 +38,7 @@ class DashboardController(QObject):
         self.viewmodel = viewmodel or DashboardViewModel()
         self.demo_source = DemoSource()
         self._acquisition: AcquisitionService | None = None
+        self._source_settings: dict[str, object] = {}
         self.metrics = MetricsService()
         self.monitoring = MonitoringService()
         self.sessions = SessionService()
@@ -87,10 +89,23 @@ class DashboardController(QObject):
                 )
 
                 ports = enumerate_serial_ports()
-                if not ports:
+                configured_port = str(self._source_settings.get("port", ""))
+                if configured_port:
+                    port = next((item for item in ports if item.device == configured_port), None)
+                    if port is None:
+                        raise RuntimeError(f"Serial port not found: {configured_port}")
+                elif not ports:
                     raise RuntimeError("No serial sensor ports were found")
-                port = ports[0]
-                source: object = SerialSensorSource(SerialSourceConfig(port=port.device))
+                else:
+                    port = ports[0]
+                source: object = SerialSensorSource(
+                    SerialSourceConfig(
+                        port=port.device,
+                        sampling_rate=float(
+                            cast(float, self._source_settings.get("sampling_rate", 1000.0))
+                        ),
+                    )
+                )
                 self.attach_source(source, SourceType.SERIAL, port.description or port.device)
             elif source_name == "audio":
                 from signal_processing_toolkit.audio.streaming import (
@@ -108,7 +123,18 @@ class DashboardController(QObject):
                 source.configure(
                     {
                         "device": device.index,
-                        "channels": max(1, min(device.maximum_input_channels, 2)),
+                        "sampling_rate": float(
+                            cast(
+                                float,
+                                self._source_settings.get(
+                                    "sampling_rate", device.default_sampling_rate
+                                ),
+                            )
+                        ),
+                        "channels": min(
+                            device.maximum_input_channels,
+                            cast(int, self._source_settings.get("channels", 1)),
+                        ),
                     }
                 )
                 self.attach_source(source, SourceType.AUDIO, device.name)
@@ -136,6 +162,13 @@ class DashboardController(QObject):
         self.viewmodel.add_event(
             DashboardEvent(event_type="source", description="Source list refreshed")
         )
+
+    def configure_source(self, sampling_rate: float, channels: int, port: str) -> None:
+        self._source_settings = {
+            "sampling_rate": sampling_rate,
+            "channels": channels,
+            "port": port,
+        }
 
     def attach_source(self, source: object, source_type: SourceType, device_name: str) -> None:
         """Attach an audio, serial or replay StreamSource without importing its backend."""

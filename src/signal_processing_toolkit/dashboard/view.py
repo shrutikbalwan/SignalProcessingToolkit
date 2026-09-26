@@ -91,6 +91,7 @@ class DashboardView(QWidget):
         )
         self.controls.record_requested.connect(self._record)
         self.source_selector.source_requested.connect(self.controller.select_source)
+        self.source_selector.configuration_requested.connect(self.controller.configure_source)
         self.source_selector.replay_requested.connect(self._open_replay)
         self.source_selector.refresh_requested.connect(self.controller.refresh_sources)
         self.viewmodel.observe(self._render)
