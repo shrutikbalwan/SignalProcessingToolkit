@@ -107,7 +107,7 @@ class TaskRunner(QObject):
         self.busy_changed.emit(bool(self._workers))
 
     def wait_for_done(self, timeout_ms: int = 5000) -> bool:
-        return self._pool.waitForDone(timeout_ms)
+        return bool(self._pool.waitForDone(timeout_ms))
 
     def cancel_all(self) -> None:
         for worker in tuple(self._workers):

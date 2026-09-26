@@ -165,7 +165,7 @@ class LiveMonitorView(QWidget):
 
     @property
     def update_interval(self) -> int:
-        return self._timer.interval()
+        return int(self._timer.interval())
 
     @property
     def update_count(self) -> int:

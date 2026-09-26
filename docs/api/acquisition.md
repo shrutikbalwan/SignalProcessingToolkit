@@ -88,8 +88,8 @@ missing packets. Packets behind the latest accepted sequence are marked out of o
 numbers wrap from `0xffffffff` to zero.
 
 `SensorPacket`, `encode_binary_packet`, `BinaryPacketParser`, and `CSVPacketParser` provide the
-reference implementation. The [ESP32 protocol example](../../examples/esp32/README.md) gives
-accelerometer and microphone packet examples.
+reference implementation. The repository file `examples/esp32/README.md` gives accelerometer
+and microphone packet examples.
 
 ## Recorded sessions and replay
 

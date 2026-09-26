@@ -137,7 +137,7 @@ ignore = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D203", "D213"
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-line-ending = "lf"
+line-ending = "auto"
 
 [tool.black]
 line-length = 100
