@@ -24,9 +24,10 @@ maintainer-controlled CI run.
 
 ## Pending or environment-dependent
 
-- Complete upstream license and bundled-asset review requires maintainer or
-  legal sign-off; the repository contains no third-party models, datasets,
-  screenshots, videos, fonts or other bundled assets.
+- Technical dependency inventory is documented in `docs/licenses.md`; final
+  PyQt6/fpdf2 license approval still requires maintainer or legal sign-off.
+  The repository contains no third-party models, datasets, screenshots,
+  videos, fonts or other bundled assets.
 - Screenshots and short videos are not bundled; they remain documentation work.
 
 The automated release gates are green. The project remains a release candidate
