@@ -8,6 +8,7 @@ from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
 from signal_processing_toolkit.dashboard.events import DashboardAction, DashboardCommand
 from signal_processing_toolkit.dashboard.services import (
+    AcquisitionService,
     DemoSource,
     MetricsService,
     MonitoringService,
@@ -22,6 +23,7 @@ from signal_processing_toolkit.dashboard.state import (
     SourceType,
 )
 from signal_processing_toolkit.dashboard.viewmodel import DashboardViewModel
+from signal_processing_toolkit.streaming.model import StreamChunk
 
 
 class DashboardController(QObject):
@@ -34,6 +36,7 @@ class DashboardController(QObject):
         super().__init__(parent)
         self.viewmodel = viewmodel or DashboardViewModel()
         self.demo_source = DemoSource()
+        self._acquisition: AcquisitionService | None = None
         self.metrics = MetricsService()
         self.monitoring = MonitoringService()
         self.sessions = SessionService()
@@ -56,6 +59,7 @@ class DashboardController(QObject):
         handlers[command]()
 
     def start_demo(self) -> None:
+        self.stop_source()
         self.viewmodel.update_source(
             SourceState(
                 source_type=SourceType.DEMO,
@@ -69,12 +73,48 @@ class DashboardController(QObject):
         )
         self.start()
 
+    def attach_source(self, source: object, source_type: SourceType, device_name: str) -> None:
+        """Attach an audio, serial or replay StreamSource without importing its backend."""
+        self.stop_source()
+        self._acquisition = AcquisitionService(source)
+        self._acquisition.subscribe_events(self._on_source_error)
+        self.viewmodel.update_source(
+            SourceState(
+                source_type=source_type,
+                device_name=device_name,
+                connection_status=ConnectionStatus.CONNECTING,
+            )
+        )
+
+    def start_source(self) -> None:
+        if self._acquisition is None:
+            raise RuntimeError("No external source is attached")
+        self._acquisition.start()
+        source = self.viewmodel.state.source
+        source.connected = True
+        source.connection_status = ConnectionStatus.CONNECTED
+        self.viewmodel.update_source(source)
+        self.start()
+
+    def stop_source(self) -> None:
+        if self._acquisition is not None:
+            self._acquisition.stop()
+            self._acquisition = None
+
+    def _on_source_error(self, message: str) -> None:
+        self.error.emit(message)
+        source = self.viewmodel.state.source
+        source.connected = False
+        source.connection_status = ConnectionStatus.ERROR
+        self.viewmodel.update_source(source)
+
     def start(self) -> None:
         if self.viewmodel.state.session.status.value == "running":
             return
         session = self.sessions.start(self.viewmodel.state.session)
         self.viewmodel.update_session(session)
-        self.demo_source.start()
+        if self._acquisition is None:
+            self.demo_source.start()
         self._timer.start()
         self.viewmodel.add_event(
             DashboardEvent(event_type="session", description="Session started")
@@ -84,19 +124,26 @@ class DashboardController(QObject):
     def pause(self) -> None:
         self.viewmodel.update_session(self.sessions.pause(self.viewmodel.state.session))
         self._timer.stop()
+        if self._acquisition is not None:
+            self._acquisition.stop()
         self.viewmodel.add_event(DashboardEvent(event_type="session", description="Session paused"))
         self.state_changed.emit()
 
     def resume(self) -> None:
         self.viewmodel.update_session(self.sessions.resume(self.viewmodel.state.session))
         if self.viewmodel.state.session.status.value == "running":
-            self.demo_source.start()
+            if self._acquisition is None:
+                self.demo_source.start()
+            elif not self._acquisition.running:
+                self._acquisition.start()
             self._timer.start()
         self.state_changed.emit()
 
     def stop(self) -> None:
         self._timer.stop()
         self.demo_source.stop()
+        if self._acquisition is not None:
+            self._acquisition.stop()
         self.viewmodel.update_session(self.sessions.stop(self.viewmodel.state.session))
         source = self.viewmodel.state.source
         source.connected = False
@@ -134,34 +181,64 @@ class DashboardController(QObject):
     def _tick(self) -> None:
         if self._closed:
             return
-        self.demo_source.next_chunk()
+        if self._acquisition is not None:
+            for chunk in self._acquisition.poll():
+                self._on_stream_chunk(chunk)
+            if self._acquisition.error is not None:
+                self._on_source_error(str(self._acquisition.error))
+        else:
+            self.demo_source.next_chunk()
         session = self.viewmodel.state.session
         if session.started_at:
             session.elapsed_seconds = (datetime.now() - session.started_at).total_seconds()
             self.viewmodel.update_session(session)
 
-    def _on_chunk(self, chunk: list[float], sequence: int) -> None:
+    def _on_chunk(
+        self, chunk: list[float], sequence: int, sampling_rate: float | None = None
+    ) -> None:
         del sequence
+        rate = self.demo_source.sampling_rate if sampling_rate is None else sampling_rate
         samples = (self.viewmodel.state.signal_samples + chunk)[-2_000:]
         self.viewmodel.update("signal_samples", samples)
         self.viewmodel.update("spectrum", self.metrics.spectrum(samples))
-        self.viewmodel.update_metrics(
-            self.metrics.calculate(samples, self.demo_source.sampling_rate)
-        )
+        self.viewmodel.update_metrics(self.metrics.calculate(samples, rate))
         self.viewmodel.update_health(
             self.monitoring.update(processing_latency_ms=0.1, queue_depth=0)
         )
         if self.viewmodel.state.recording.active:
             recording = self.viewmodel.state.recording
             recording.samples_written += len(chunk)
-            recording.duration_seconds = recording.samples_written / self.demo_source.sampling_rate
+            recording.duration_seconds = recording.samples_written / rate
             self.viewmodel.update_recording(recording)
+
+    def _on_stream_chunk(self, chunk: StreamChunk) -> None:
+        import numpy as np
+
+        source = self.viewmodel.state.source
+        source.connected = True
+        source.connection_status = ConnectionStatus.CONNECTED
+        source.sampling_rate = float(chunk.sampling_rate)
+        source.channels = int(chunk.channel_count)
+        source.frame_rate = source.sampling_rate / max(1, int(chunk.sample_count))
+        self.viewmodel.update_source(source)
+        samples = np.asarray(chunk.samples)
+        mono = samples if samples.ndim == 1 else samples[:, 0]
+        rate = float(chunk.sampling_rate)
+        self._on_chunk(mono.astype(float).tolist(), int(chunk.sequence), rate)
+        if self._acquisition is not None:
+            health = self.viewmodel.state.health
+            health.queue_depth = self._acquisition.queue_depth
+            health.dropped_frames = self._acquisition.dropped_chunks
+            missing = int(chunk.attributes.get("missing_before", 0))
+            health.packet_loss += missing
+            self.viewmodel.update_health(health)
 
     def cleanup(self) -> None:
         if self._closed:
             return
         self._closed = True
         self._timer.stop()
+        self.stop_source()
         self.demo_source.stop()
         self.demo_source.unsubscribe(self._on_chunk)
         self.viewmodel.dispose()
