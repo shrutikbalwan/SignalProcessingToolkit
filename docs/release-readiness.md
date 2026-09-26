@@ -14,12 +14,17 @@ maintainer-controlled CI run.
 - Version is sourced from `src/signal_processing_toolkit/_version.py`.
 - Local release-gate runner passes formatting, linting, typing, tests, docs,
   build, package metadata, and embedded compilation (7/8 executable checks).
+- `pip-audit -r requirements.txt`: no known vulnerabilities found.
+- `v1.0.0-rc1` tag created and pushed to `origin`.
+- RC wheel installed in a clean temporary virtual environment with mandatory
+  dependencies; package import and `spt --help` succeeded.
 
 ## Pending or environment-dependent
 
 - Cross-platform GitHub Actions run (Windows, Linux, macOS; Python 3.12/3.13).
-- Dependency audit (`pip-audit` is not installed on this host).
 - Cross-platform coverage evidence from CI (local mandatory-core coverage is 56.97%, above the 50% gate).
+- GitHub-hosted CI and CodeQL results could not be queried from this host because
+  GitHub CLI is unauthenticated and outbound GitHub access is unavailable.
 - pip-audit and CodeQL results for the release commit.
 - Complete upstream license and bundled-asset review.
 - Clean-system release-candidate installation.
