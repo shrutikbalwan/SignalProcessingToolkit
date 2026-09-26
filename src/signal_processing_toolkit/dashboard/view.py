@@ -103,6 +103,7 @@ class DashboardView(QWidget):
         self.signal_panel.update_samples(state.signal_samples)
         self.state_stack.setCurrentIndex(3 if state.signal_samples else 0)
         self.spectrum_panel.update_spectrum(state.spectrum)
+        self.spectrogram_panel.update_spectrum(state.spectrum)
         self.measurements.update_metrics(state.metrics)
         self.device_status.update_source(state.source)
         self.system_health.update_health(state.health)

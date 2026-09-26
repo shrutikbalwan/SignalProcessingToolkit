@@ -1,3 +1,4 @@
+import pyqtgraph as pg
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 
@@ -6,11 +7,13 @@ class SignalPanel(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel("Live signal"))
-        self.status = QLabel("No samples")
-        self.status.setAccessibleName("Live signal status")
-        layout.addWidget(self.status)
+        self.plot = pg.PlotWidget(self)
+        self.plot.setLabel("left", "Amplitude")
+        self.plot.setLabel("bottom", "Sample")
+        self.plot.showGrid(x=True, y=True, alpha=0.25)
+        self.plot.setAccessibleName("Live signal plot")
+        self.curve = self.plot.plot(pen=pg.mkPen("#4fc3f7", width=2))
+        layout.addWidget(self.plot)
 
     def update_samples(self, samples: list[float]) -> None:
-        self.status.setText(f"{len(samples)} samples") if samples else self.status.setText(
-            "No samples"
-        )
+        self.curve.setData(samples)

@@ -11,6 +11,17 @@ from signal_processing_toolkit.dashboard.state import SignalMetrics
 
 
 class MetricsService:
+    def spectrum(self, samples: Sequence[float]) -> list[float]:
+        """Return normalized single-sided magnitudes for dashboard display."""
+        if not samples:
+            return []
+        values = np.asarray(samples, dtype=float)
+        magnitudes = np.abs(np.fft.rfft(values - np.mean(values)))
+        if len(values) > 1:
+            magnitudes *= 2.0 / len(values)
+            magnitudes[0] /= 2.0
+        return [float(item) for item in magnitudes]
+
     def calculate(self, samples: Sequence[float], sampling_rate: float) -> SignalMetrics:
         if not samples:
             return SignalMetrics()

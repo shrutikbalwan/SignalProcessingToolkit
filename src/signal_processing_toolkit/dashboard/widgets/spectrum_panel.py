@@ -1,3 +1,4 @@
+import pyqtgraph as pg
 from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 
@@ -6,10 +7,13 @@ class SpectrumPanel(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel("Spectrum"))
-        self.status = QLabel("Waiting for signal")
-        layout.addWidget(self.status)
+        self.plot = pg.PlotWidget(self)
+        self.plot.setLabel("left", "Magnitude")
+        self.plot.setLabel("bottom", "Bin")
+        self.plot.showGrid(x=True, y=True, alpha=0.25)
+        self.plot.setAccessibleName("Spectrum plot")
+        self.curve = self.plot.plot(pen=pg.mkPen("#ffb74d", width=2))
+        layout.addWidget(self.plot)
 
     def update_spectrum(self, spectrum: list[float]) -> None:
-        self.status.setText(f"{len(spectrum)} bins") if spectrum else self.status.setText(
-            "Waiting for signal"
-        )
+        self.curve.setData(spectrum)

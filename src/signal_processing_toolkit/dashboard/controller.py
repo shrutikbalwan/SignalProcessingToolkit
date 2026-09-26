@@ -144,6 +144,7 @@ class DashboardController(QObject):
         del sequence
         samples = (self.viewmodel.state.signal_samples + chunk)[-2_000:]
         self.viewmodel.update("signal_samples", samples)
+        self.viewmodel.update("spectrum", self.metrics.spectrum(samples))
         self.viewmodel.update_metrics(
             self.metrics.calculate(samples, self.demo_source.sampling_rate)
         )
