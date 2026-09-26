@@ -10,6 +10,8 @@ from PyQt6.QtWidgets import QLabel, QVBoxLayout, QWidget
 from signal_processing_toolkit.core.application_state import ApplicationState, SignalStateChange
 from signal_processing_toolkit.core.events import EventBus
 from signal_processing_toolkit.core.history import UndoRedoManager
+from signal_processing_toolkit.dashboard.controller import DashboardController
+from signal_processing_toolkit.dashboard.view import DashboardView
 from signal_processing_toolkit.models.signal import Signal
 from signal_processing_toolkit.services.signal_service import SignalService
 from signal_processing_toolkit.ui.components.page_state import StatefulPage
@@ -30,7 +32,6 @@ from signal_processing_toolkit.ui.controllers.signal_operations_controller impor
 )
 from signal_processing_toolkit.ui.controllers.windows_controller import WindowController
 from signal_processing_toolkit.ui.views.analysis_view import AnalysisView
-from signal_processing_toolkit.ui.views.dashboard_view import DashboardView
 from signal_processing_toolkit.ui.views.edge_ai_view import EdgeAIView
 from signal_processing_toolkit.ui.views.monitor_view import LiveMonitorView
 from signal_processing_toolkit.ui.views.pipeline_editor_view import PipelineEditorView
@@ -67,7 +68,8 @@ class MainController:
         self.image = self._create_image_controller(event_bus)
         self.export = ExportController(event_bus)
         self.settings = SettingsController(event_bus, settings_path)
-        self.dashboard = DashboardView()
+        self.dashboard_controller = DashboardController()
+        self.dashboard = DashboardView(self.dashboard_controller)
         self.analysis = AnalysisView()
         self.edge_ai = EdgeAIView()
         self.pipeline_editor = PipelineEditorView()
@@ -241,6 +243,7 @@ class MainController:
             return
         self._cleaned_up = True
         self.monitor.shutdown()
+        self.dashboard_controller.cleanup()
         if self._pages is not None:
             for page in self._pages.values():
                 for runner in page.findChildren(TaskRunner):
