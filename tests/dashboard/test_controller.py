@@ -17,3 +17,16 @@ def test_demo_start_stop_and_restart(qapp: QApplication) -> None:
     assert controller.timer_active
     controller.cleanup()
     assert not controller.timer_active
+
+
+def test_recording_and_ai_updates(qapp: QApplication) -> None:
+    controller = DashboardController()
+    controller.start_demo()
+    controller.dispatch(DashboardCommand.TOGGLE_RECORDING)
+    controller._tick()
+    assert controller.viewmodel.state.recording.active
+    assert controller.viewmodel.state.recording.samples_written > 0
+    controller.set_ai_prediction("healthy", 0.95)
+    assert controller.viewmodel.state.ai.predicted_class == "healthy"
+    assert controller.viewmodel.state.events[-1].event_type == "ai_prediction"
+    controller.cleanup()
