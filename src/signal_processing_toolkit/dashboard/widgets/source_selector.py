@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (
 
 class SourceSelector(QWidget):
     source_requested = pyqtSignal(str)
-    configuration_requested = pyqtSignal(float, int, str)
+    configuration_requested = pyqtSignal(float, int, str, str)
     replay_requested = pyqtSignal()
     refresh_requested = pyqtSignal()
 
@@ -45,6 +45,10 @@ class SourceSelector(QWidget):
         self.port.setPlaceholderText("Serial port")
         self.port.setAccessibleName("Serial port")
         layout.addWidget(self.port)
+        self.device = QComboBox(self)
+        self.device.setAccessibleName("Discovered source device")
+        self.device.setMinimumWidth(180)
+        layout.addWidget(self.device)
         self.refresh = QPushButton("Connect")
         self.refresh.setAccessibleName("Connect selected source")
         self.refresh.clicked.connect(self._request_source)
@@ -64,6 +68,14 @@ class SourceSelector(QWidget):
 
     def _request_source(self) -> None:
         self.configuration_requested.emit(
-            self.rate.value(), self.channels.value(), self.port.text().strip()
+            self.rate.value(),
+            self.channels.value(),
+            self.port.text().strip(),
+            str(self.device.currentData() or ""),
         )
         self.source_requested.emit(self.selected_source)
+
+    def update_devices(self, devices: list[tuple[str, str]]) -> None:
+        self.device.clear()
+        for label, identifier in devices:
+            self.device.addItem(label, identifier)

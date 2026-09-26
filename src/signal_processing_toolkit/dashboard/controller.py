@@ -30,6 +30,7 @@ from signal_processing_toolkit.streaming.model import StreamChunk
 class DashboardController(QObject):
     state_changed = pyqtSignal()
     error = pyqtSignal(str)
+    devices_changed = pyqtSignal(list)
 
     def __init__(
         self, viewmodel: DashboardViewModel | None = None, parent: QObject | None = None
@@ -89,7 +90,9 @@ class DashboardController(QObject):
                 )
 
                 ports = enumerate_serial_ports()
-                configured_port = str(self._source_settings.get("port", ""))
+                configured_port = str(self._source_settings.get("port", "")) or str(
+                    self._source_settings.get("device", "")
+                )
                 if configured_port:
                     port = next((item for item in ports if item.device == configured_port), None)
                     if port is None:
@@ -118,7 +121,15 @@ class DashboardController(QObject):
                 )
                 if not devices:
                     raise RuntimeError("No audio input devices were found")
-                device = devices[0]
+                selected = str(self._source_settings.get("device", ""))
+                device = next(
+                    (
+                        item
+                        for item in devices
+                        if str(item.index) == selected or item.name == selected
+                    ),
+                    devices[0],
+                )
                 source = SoundDeviceAudioSource()
                 source.configure(
                     {
@@ -159,15 +170,37 @@ class DashboardController(QObject):
 
     def refresh_sources(self) -> None:
         """Refresh hook for source pickers; discovery remains lazy and optional."""
+        devices: list[tuple[str, str]] = []
+        try:
+            from signal_processing_toolkit.hardware.serial_source import enumerate_serial_ports
+
+            devices.extend(
+                (f"Serial: {item.description or item.device}", item.device)
+                for item in enumerate_serial_ports()
+            )
+        except (ImportError, RuntimeError, OSError):
+            pass
+        try:
+            from signal_processing_toolkit.audio.streaming import enumerate_audio_devices
+
+            devices.extend(
+                (f"Audio: {item.name}", str(item.index))
+                for item in enumerate_audio_devices()
+                if item.supports_input
+            )
+        except (ImportError, RuntimeError, OSError):
+            pass
+        self.devices_changed.emit(devices)
         self.viewmodel.add_event(
             DashboardEvent(event_type="source", description="Source list refreshed")
         )
 
-    def configure_source(self, sampling_rate: float, channels: int, port: str) -> None:
+    def configure_source(self, sampling_rate: float, channels: int, port: str, device: str) -> None:
         self._source_settings = {
             "sampling_rate": sampling_rate,
             "channels": channels,
             "port": port,
+            "device": device,
         }
 
     def attach_source(self, source: object, source_type: SourceType, device_name: str) -> None:

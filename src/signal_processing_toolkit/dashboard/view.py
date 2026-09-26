@@ -94,6 +94,7 @@ class DashboardView(QWidget):
         self.source_selector.configuration_requested.connect(self.controller.configure_source)
         self.source_selector.replay_requested.connect(self._open_replay)
         self.source_selector.refresh_requested.connect(self.controller.refresh_sources)
+        self.controller.devices_changed.connect(self.source_selector.update_devices)
         self.viewmodel.observe(self._render)
 
     def _demo(self) -> None:
