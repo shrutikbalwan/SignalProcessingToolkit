@@ -13,22 +13,22 @@ maintainer-controlled CI run.
 - Generated embedded C smoke compilation passes when a C compiler is available.
 - Version is sourced from `src/signal_processing_toolkit/_version.py`.
 - Local release-gate runner passes formatting, linting, typing, tests, docs,
-  build, package metadata, and embedded compilation (7/8 executable checks).
+  build, package metadata, and embedded compilation.
 - `pip-audit -r requirements.txt`: no known vulnerabilities found.
 - `v1.0.0-rc1` tag created and pushed to `origin`.
 - RC wheel installed in a clean temporary virtual environment with mandatory
   dependencies; package import and `spt --help` succeeded.
+- Hosted CI run `36256373381` passed on Linux, Windows and macOS for Python
+  3.12 and 3.13, including wheel smoke testing, documentation, generated
+  embedded-example compilation, pip-audit and CodeQL.
 
 ## Pending or environment-dependent
 
-- Cross-platform GitHub Actions run (Windows, Linux, macOS; Python 3.12/3.13).
-- Cross-platform coverage evidence from CI (local mandatory-core coverage is 56.97%, above the 50% gate).
-- GitHub-hosted CI and CodeQL results could not be queried from this host because
-  GitHub CLI is unauthenticated and outbound GitHub access is unavailable.
-- pip-audit and CodeQL results for the release commit.
-- Complete upstream license and bundled-asset review.
-- Clean-system release-candidate installation.
+- Complete upstream license and bundled-asset review requires maintainer or
+  legal sign-off; the repository contains no third-party models, datasets,
+  screenshots, videos, fonts or other bundled assets.
 - Screenshots and short videos are not bundled; they remain documentation work.
 
-Until the pending gates are checked, the release status is **release candidate
-preparation**, not production-ready.
+The automated release gates are green. The project remains a release candidate
+until the maintainer records third-party license sign-off; no production-ready
+claim is made on the basis of automated checks alone.
