@@ -1,0 +1,3 @@
+# Core runtime dependencies. Prefer installing the project with `pip install -e .`.
+numpy>=1.26
+scipy>=1.11

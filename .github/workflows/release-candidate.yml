@@ -1,0 +1,24 @@
+name: Release candidate
+
+on:
+  push:
+    tags: ['v*.*.*-rc*']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip build twine
+      - run: python -m build
+      - run: twine check dist/*
+      - run: python -m venv /tmp/spt-rc-env
+      - run: /tmp/spt-rc-env/bin/python -m pip install dist/*.whl
+      - run: /tmp/spt-rc-env/bin/python -c "import signal_processing_toolkit; print(signal_processing_toolkit.__version__)"
+      # Deliberately no publish step: a maintainer performs release publication manually.

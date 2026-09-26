@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ['3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e ".[dev]"
+      - run: ruff format --check src tests
+      - run: ruff check src tests
+      - run: mypy src
+      - run: >-
+          pytest -q
+          --cov=signal_processing_toolkit.models
+          --cov=signal_processing_toolkit.dsp
+          --cov=signal_processing_toolkit.services
+          --cov-report=term-missing
+          --cov-fail-under=50
+
+  package:
+    name: Package and wheel smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --upgrade pip build twine
+      - run: python -m build
+      - run: twine check dist/*
+      - run: python -m venv /tmp/spt-wheel-env
+      - run: /tmp/spt-wheel-env/bin/python -m pip install dist/*.whl
+      - run: /tmp/spt-wheel-env/bin/python -c "import signal_processing_toolkit; import signal_processing_toolkit.models.signal; print(signal_processing_toolkit.__version__)"
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e ".[docs]"
+      - run: sphinx-build -W -b html docs docs/_build/html
+
+  embedded:
+    name: Generated embedded example
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: sudo apt-get update && sudo apt-get install -y gcc
+      - run: python -m pip install -e .
+      - run: python tools/compile_embedded_example.py
+
+  security:
+    name: Dependency and security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pip-audit
+      - run: pip-audit -r requirements.txt
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: python
+      - uses: github/codeql-action/analyze@v3
